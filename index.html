@@ -1,0 +1,1553 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RBO Explorer</title>
+<meta name="description" content="Interactive explainer: how the persistence parameter p of rank-biased overlap (RBO) decides which ranks of two rankings matter.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232a78d6'/%3E%3Cpath d='M7 9h6M7 16h6M7 23h6M19 9h6M19 16h6M19 23h6' stroke='%23fff' stroke-width='2.4' stroke-linecap='round'/%3E%3Cpath d='M13 9l6 7M13 16l6-7M13 23h6' stroke='%23fff' stroke-width='1.4' stroke-linecap='round' opacity='.85'/%3E%3C/svg%3E">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb;
+  --ink: #0b0b0b; --ink-2: #52514e; --ink-3: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7;
+  --border: rgba(11,11,11,0.10); --wash: rgba(11,11,11,0.045);
+  --accent: #2a78d6; --accent-ink: #1c5cab; --accent-wash: rgba(42,120,214,0.10);
+  --accent-soft: #cde2fb; --accent-mid: #9ec5f4; --chip-ink: #0b0b0b;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300;
+  --ref: #898781;
+  --shadow: 0 1px 2px rgba(11,11,11,0.05), 0 6px 20px rgba(11,11,11,0.05);
+  --rh: 32px; --radius: 12px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19;
+    --ink: #f0efec; --ink-2: #c3c2b7; --ink-3: #898781;
+    --grid: #2c2c2a; --axis: #383835;
+    --border: rgba(255,255,255,0.10); --wash: rgba(255,255,255,0.06);
+    --accent: #3987e5; --accent-ink: #86b6ef; --accent-wash: rgba(57,135,229,0.16);
+    --accent-soft: #184f95; --accent-mid: #1c5cab; --chip-ink: #f0efec;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c;
+    --shadow: 0 1px 2px rgba(0,0,0,0.4);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19;
+  --ink: #f0efec; --ink-2: #c3c2b7; --ink-3: #898781;
+  --grid: #2c2c2a; --axis: #383835;
+  --border: rgba(255,255,255,0.10); --wash: rgba(255,255,255,0.06);
+  --accent: #3987e5; --accent-ink: #86b6ef; --accent-wash: rgba(57,135,229,0.16);
+  --accent-soft: #184f95; --accent-mid: #1c5cab; --chip-ink: #f0efec;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c;
+  --shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.55 var(--font); }
+a { color: var(--accent-ink); text-underline-offset: 2px; }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+@media (min-width: 720px) { .wrap { padding: 0 24px; } }
+h1 { font-size: clamp(26px, 4.2vw, 38px); line-height: 1.12; letter-spacing: -0.015em; margin: 0 0 14px; font-weight: 650; max-width: 22ch; }
+h2 { font-size: 21px; line-height: 1.25; margin: 0 0 8px; font-weight: 640; letter-spacing: -0.005em; }
+h3 { font-size: 15px; margin: 0 0 6px; font-weight: 620; }
+p { margin: 0 0 12px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+math { font-size: 1.08em; }
+.mathbox { overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* header */
+.site-head { padding: 36px 0 28px; }
+.head-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 10px; }
+.eyebrow { font-size: 13px; color: var(--ink-2); letter-spacing: .02em; }
+.icon-btn { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); display: grid; place-items: center; cursor: pointer; flex: none; }
+.icon-btn:hover { background: var(--wash); color: var(--ink); }
+.lede { font-size: 17px; color: var(--ink-2); max-width: 72ch; }
+.formula-card { margin-top: 18px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 20px; box-shadow: var(--shadow); display: flex; flex-wrap: wrap; align-items: center; gap: 4px 28px; }
+.formula-card .mathbox { flex: 0 1 auto; max-width: 100%; }
+.formula-card p { margin: 0; font-size: 13px; color: var(--ink-2); flex: 1 1 260px; }
+
+/* sticky p control */
+.pbar { position: sticky; top: 0; z-index: 30; background: var(--page); border-bottom: 1px solid var(--border); }
+@supports (backdrop-filter: blur(8px)) {
+  .pbar { background: color-mix(in srgb, var(--page) 86%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+}
+.pbar-inner { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 20px; padding-top: 10px; padding-bottom: 8px; align-items: center; }
+.pval { display: flex; align-items: center; gap: 8px; }
+.pval label { font-size: 22px; font-style: italic; font-weight: 600; white-space: nowrap; }
+#p-num { width: 4.6em; font: 600 22px/1.2 var(--font); font-variant-numeric: tabular-nums; border: 1px solid var(--border); border-radius: 8px; padding: 3px 6px 3px 8px; background: var(--surface); color: var(--ink); }
+.slider { position: relative; padding-bottom: 16px; --th: 20px; }
+.ticks { position: absolute; left: 0; right: 0; bottom: 0; height: 15px; font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.ticks span { position: absolute; top: 0; transform: translateX(-50%); left: calc(var(--th) / 2 + (100% - var(--th)) * var(--f)); white-space: nowrap; line-height: 15px; }
+.ticks span.minor { display: none; }
+@media (min-width: 760px) { .ticks span.minor { display: inline; } }
+input[type=range] { -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 26px; margin: 0; background: transparent; cursor: pointer; --fill: 33%; }
+input[type=range]:focus-visible { outline: none; }
+input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(to right, var(--accent) 0 var(--fill), var(--grid) var(--fill) 100%); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; box-sizing: border-box; width: 20px; height: 20px; margin-top: -7px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+input[type=range]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--accent-mid); }
+input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--grid); }
+input[type=range]::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--accent); }
+input[type=range]::-moz-range-thumb { box-sizing: border-box; width: 20px; height: 20px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+input[type=range]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px var(--accent-mid); }
+.pbar-row2 { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 18px; }
+.presets { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+.chip-btn { font: 500 13px/1 var(--font); padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); cursor: pointer; font-variant-numeric: tabular-nums; flex: none; }
+.chip-btn:hover { color: var(--ink); background: var(--wash); }
+.chip-btn[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+.pstats { margin: 0; font-size: 13px; color: var(--ink-2); }
+.pstats b { color: var(--ink); font-weight: 620; font-variant-numeric: tabular-nums; }
+@media (max-width: 560px) {
+  .pbar-inner { column-gap: 12px; }
+  .pval { gap: 4px; }
+  .pval label, #p-num { font-size: 18px; }
+  #p-num { width: 4.4em; }
+  .pstats { font-size: 12px; }
+}
+
+/* sections & cards */
+main { padding-bottom: 40px; }
+section { padding: 40px 0 4px; scroll-margin-top: 120px; }
+.sec-head { max-width: 76ch; margin-bottom: 16px; }
+.sec-head p { color: var(--ink-2); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); min-width: 0; }
+@media (min-width: 720px) { .card { padding: 20px; } }
+.pair-grid, .weights-grid, .scen-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1000px) {
+  .pair-grid { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+  .weights-grid { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); }
+  .scen-grid { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); }
+}
+
+/* toolbar & editor */
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+.btn { font: 500 13px/1 var(--font); height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { background: var(--wash); }
+.btn[aria-expanded="true"] { background: var(--wash); }
+select.btn { -webkit-appearance: none; appearance: none; padding-right: 30px; max-width: 100%; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23898781' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; }
+.editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 12px; margin-bottom: 14px; }
+.editor[hidden] { display: none; }
+.editor label { font-size: 13px; color: var(--ink-2); display: block; margin-bottom: 4px; }
+.editor textarea { width: 100%; min-height: 76px; font: 14px/1.45 var(--mono); padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--page); color: var(--ink); resize: vertical; }
+.editor .hint { grid-column: 1 / -1; font-size: 12px; color: var(--ink-3); margin: 0; }
+.editor .warn { grid-column: 1 / -1; font-size: 13px; color: var(--ink-2); margin: 0; }
+.editor .warn::before { content: "⚠ "; }
+.editor .warn[hidden] { display: none; }
+
+/* rank table */
+.rt { --cols: 1.9rem minmax(0, 1fr) 3rem minmax(0, 1fr) 2.1rem 5.4rem minmax(0, 1.15fr); font-size: 14px; }
+.rt-head, .rt-row { display: grid; grid-template-columns: var(--cols); align-items: center; }
+.rt-head { font-size: 12px; color: var(--ink-2); height: 30px; border-bottom: 1px solid var(--grid); margin-bottom: 4px; }
+.rt-head > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rt-head .c-s, .rt-head .c-t { font-weight: 620; color: var(--ink); font-size: 13px; padding-left: 10px; }
+.rt-body { display: grid; grid-template-columns: var(--cols); grid-template-rows: calc(var(--n) * var(--rh)); }
+.rt-rows { grid-column: 1 / -1; grid-row: 1; position: relative; }
+.rt-row { position: absolute; left: 0; right: 0; height: var(--rh); border-radius: 6px; }
+.rt-row.hl { background: var(--wash); }
+.rt-row.kick .c-d { color: var(--ink); font-weight: 650; }
+.rt-col { grid-row: 1; position: relative; z-index: 1; }
+.rt-col-s { grid-column: 2; }
+.rt-col-t { grid-column: 4; }
+.rt-links { grid-column: 3; grid-row: 1; width: 100%; height: 100%; display: block; overflow: visible; z-index: 1; pointer-events: none; }
+.c-d { color: var(--ink-3); font-variant-numeric: tabular-nums; text-align: right; padding-right: 8px; font-size: 12px; }
+.c-x { text-align: center; color: var(--ink-2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.c-a { display: flex; align-items: center; gap: 6px; padding-left: 8px; min-width: 0; }
+.c-w { display: flex; align-items: center; gap: 8px; padding-left: 10px; min-width: 0; }
+.rt-head .c-a, .rt-head .c-w { display: block; }
+.num { font-variant-numeric: tabular-nums; text-align: right; font-size: 13px; flex: none; }
+.c-a .num { width: 2.5em; color: var(--ink-2); }
+.c-w .num { width: 3.6em; }
+.abar { flex: 1; height: 6px; border-radius: 3px; background: var(--grid); overflow: hidden; min-width: 12px; }
+.abar i { display: block; height: 100%; width: 0; background: var(--ink-3); border-radius: 0 3px 3px 0; }
+.wbar { flex: 1; height: 12px; position: relative; min-width: 20px; }
+.wbar .track, .wbar .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0 4px 4px 0; }
+.wbar .track { background: var(--accent-soft); }
+.wbar .fill { background: var(--accent); }
+.est { color: var(--ink-3); }
+@media (max-width: 560px) {
+  .rt { --cols: 1.4rem minmax(0, 1fr) 2.2rem minmax(0, 1fr) 0px 2.6rem minmax(0, 1fr); }
+  .rt .c-x { visibility: hidden; }
+  .rt .abar { display: none; }
+  .c-a { padding-left: 4px; }
+  .c-w { padding-left: 8px; gap: 6px; }
+  .c-w .num { width: 3.1em; font-size: 12px; }
+}
+
+/* chips (draggable items) */
+.chip { position: absolute; left: 0; right: 0; top: 0; height: calc(var(--rh) - 6px); margin-top: 3px; display: flex; align-items: center; gap: 6px; padding: 0 8px 0 4px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); font: 500 14px/1 var(--font); cursor: grab; user-select: none; -webkit-user-select: none; transition: top .18s ease, opacity .15s, background-color .15s; }
+.rt-col-t .chip { flex-direction: row-reverse; padding: 0 4px 0 8px; }
+.chip .grip { flex: none; width: 14px; height: 22px; display: grid; place-items: center; color: var(--ink-3); touch-action: none; }
+.chip .lbl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip.matched { background: var(--accent-soft); border-color: transparent; color: var(--chip-ink); }
+.chip.dragging { transition: none; z-index: 5; cursor: grabbing; box-shadow: 0 6px 18px rgba(0,0,0,.22); }
+.chip.dim { opacity: .32; }
+.chip.hot { box-shadow: 0 0 0 2px var(--accent); }
+.link { fill: none; stroke: var(--accent); stroke-linecap: round; transition: opacity .15s; }
+.link.dim { opacity: .1; }
+.link.hot { opacity: 1; stroke-width: 4px; }
+.rt-sum { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--grid); font-size: 13px; color: var(--ink-2); display: grid; gap: 4px; }
+.rt-sum b { color: var(--ink); font-weight: 620; font-variant-numeric: tabular-nums; }
+.readout { min-height: 3.1em; margin: 10px 0 0; font-size: 13px; color: var(--ink-2); background: var(--wash); border-radius: 8px; padding: 8px 10px; }
+.readout b { color: var(--ink); font-weight: 620; }
+
+/* score card */
+.kicker { font-size: 13px; color: var(--ink-2); }
+.hero { font-size: 56px; line-height: 1; font-weight: 650; letter-spacing: -0.02em; margin: 6px 0 12px; }
+.bounds { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 0; font-size: 13px; }
+.bounds dt { color: var(--ink-2); }
+.bounds dd { margin: 0; font-weight: 620; font-size: 15px; font-variant-numeric: tabular-nums; }
+.meter { position: relative; height: 12px; border-radius: 6px; background: var(--grid); margin: 18px 0 4px; }
+.meter .m-min, .meter .m-band { position: absolute; top: 0; bottom: 0; left: 0; }
+.meter .m-min { background: var(--accent); border-radius: 6px 0 0 6px; }
+.meter .m-band { background: var(--accent-mid); border-radius: 0 6px 6px 0; }
+.meter .m-est { position: absolute; top: -5px; bottom: -5px; width: 4px; margin-left: -2px; background: var(--ink); border-radius: 2px; box-shadow: 0 0 0 2px var(--surface); }
+.meter-scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.meter-key { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--ink-2); margin-top: 8px; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 6px; }
+.sw.tick { width: 4px; border-radius: 1px; background: var(--ink); }
+.note { font-size: 13px; color: var(--ink-2); margin: 14px 0 0; }
+.divider { border: 0; border-top: 1px solid var(--grid); margin: 18px 0 16px; }
+
+/* charts */
+figure { margin: 0; }
+.fig { position: relative; }
+.fig-title { display: block; font-size: 14px; font-weight: 620; color: var(--ink); }
+.fig-sub { display: block; font-size: 12.5px; color: var(--ink-2); margin: 2px 0 8px; }
+.chart-box { position: relative; }
+.chart { display: block; width: 100%; overflow: visible; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+.chart text { font: 11px var(--font); fill: var(--ink-3); font-variant-numeric: tabular-nums; }
+.chart .gridline { stroke: var(--grid); stroke-width: 1; shape-rendering: crispEdges; }
+.chart .baseline { stroke: var(--axis); stroke-width: 1; shape-rendering: crispEdges; }
+.chart .band { fill: var(--accent); fill-opacity: .13; stroke: none; }
+.chart .band-edge { fill: none; stroke: var(--accent); stroke-opacity: .45; stroke-width: 1; }
+.chart .line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; transition: opacity .15s, stroke-width .15s; }
+.chart .line.faded { opacity: .15; }
+.chart .line.focus { stroke-width: 3; }
+.chart .ref { fill: none; stroke: var(--ref); stroke-width: 1.5; opacity: .55; }
+.chart .pline { stroke: var(--ink-2); stroke-width: 1; }
+.chart .hline { stroke: var(--ink-3); stroke-width: 1; }
+.chart .dot { stroke: var(--surface); stroke-width: 2; }
+.chart .t-strong { fill: var(--ink); font-weight: 620; }
+.chart .t-2 { fill: var(--ink-2); }
+.chart .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.chart .hit { fill: transparent; cursor: crosshair; }
+.tip { position: absolute; top: 0; left: 0; pointer-events: none; background: var(--surface); border: 1px solid var(--border); box-shadow: 0 4px 16px rgba(0,0,0,.12); border-radius: 8px; padding: 8px 10px; font-size: 12px; min-width: 150px; z-index: 6; opacity: 0; transition: opacity .1s; }
+.tip.on { opacity: 1; }
+.tip-h { color: var(--ink-2); margin-bottom: 4px; white-space: nowrap; }
+.tip-r { display: flex; align-items: center; gap: 8px; white-space: nowrap; line-height: 1.6; }
+.tip-r b { font-weight: 620; font-variant-numeric: tabular-nums; min-width: 3.4em; }
+.tip-r span { color: var(--ink-2); }
+.lk { display: inline-block; width: 14px; height: 3px; border-radius: 2px; flex: none; }
+details.dt { margin-top: 10px; font-size: 13px; }
+details.dt summary { cursor: pointer; color: var(--ink-2); width: max-content; }
+.table-wrap { overflow-x: auto; }
+table.data { border-collapse: collapse; width: 100%; font-size: 12.5px; font-variant-numeric: tabular-nums; margin-top: 6px; }
+table.data th, table.data td { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+table.data th:first-child, table.data td:first-child { text-align: left; }
+table.data th { color: var(--ink-2); font-weight: 500; }
+table.data tr.cur td { font-weight: 650; }
+
+/* weight tiles */
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 4px 0 14px; }
+.tile { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--page); }
+.tile-l { font-size: 12px; color: var(--ink-2); }
+.tile-v { font-size: 24px; font-weight: 650; line-height: 1.2; margin-top: 2px; }
+.tile-v small { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.prose { font-size: 14px; color: var(--ink-2); }
+.prose b { color: var(--ink); font-weight: 620; }
+
+/* scenario ranking */
+.rank-list { position: relative; list-style: none; margin: 4px 0 0; padding: 0; }
+.rank-list li { position: absolute; left: 0; right: 0; top: 0; height: 56px; transition: transform .38s cubic-bezier(.2, .75, .2, 1); }
+.rank-btn { width: 100%; height: 52px; display: grid; grid-template-columns: 1.3rem 18px minmax(0, 1fr) auto; column-gap: 8px; align-items: center; padding: 0 10px 0 6px; border-radius: 9px; border: 1px solid transparent; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.rank-btn:hover { background: var(--wash); }
+.rank-btn.loaded { border-color: var(--border); background: var(--page); }
+.rank-pos { color: var(--ink-3); font-size: 13px; font-variant-numeric: tabular-nums; text-align: right; }
+.rank-txt { min-width: 0; }
+.rank-name { display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rank-seq { display: block; font: 12px/1.3 var(--mono); color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rank-val { font-size: 16px; font-weight: 620; font-variant-numeric: tabular-nums; }
+.legend-note { font-size: 12px; color: var(--ink-3); margin: 8px 0 0; }
+
+/* formulas */
+.math-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .math-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.math-card p, .math-card li { font-size: 14px; color: var(--ink-2); }
+.math-card ul { padding-left: 18px; margin: 0 0 8px; }
+.math-card .mathbox { margin: 8px 0 12px; }
+.site-foot { border-top: 1px solid var(--border); margin-top: 32px; padding: 20px 0 40px; font-size: 13px; color: var(--ink-2); }
+.site-foot p { max-width: 90ch; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+<script>try { const t = localStorage.getItem('rbo-theme'); if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; } catch (e) { /* storage unavailable */ }</script>
+</head>
+<body>
+<header class="site-head">
+  <div class="wrap">
+    <div class="head-top">
+      <div class="eyebrow">Interactive explainer · comparing rankings</div>
+      <button class="icon-btn" id="theme-btn" type="button" aria-label="Switch between light and dark mode" title="Light / dark mode">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>
+      </button>
+    </div>
+    <h1>Rank-biased overlap and its persistence parameter <i>p</i></h1>
+    <p class="lede">Rank-biased overlap (RBO) scores the similarity of two rankings by comparing their top-<i>d</i> prefixes at every depth <i>d</i> and averaging the overlap with geometrically decreasing weights. A single parameter, the persistence <i>p</i>, sets how fast those weights decay. It decides which ranks the score actually depends on. Move <i>p</i> and every number on this page updates.</p>
+    <div class="formula-card">
+      <div class="mathbox">
+        <math display="block">
+          <mrow>
+            <mi>RBO</mi><mo stretchy="false">(</mo><mi>S</mi><mo>,</mo><mi>T</mi><mo>,</mo><mi>p</mi><mo stretchy="false">)</mo>
+            <mo>=</mo>
+            <mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo stretchy="false">)</mo>
+            <munderover><mo>∑</mo><mrow><mi>d</mi><mo>=</mo><mn>1</mn></mrow><mi>∞</mi></munderover>
+            <msup><mi>p</mi><mrow><mi>d</mi><mo>−</mo><mn>1</mn></mrow></msup>
+            <msub><mi>A</mi><mi>d</mi></msub>
+          </mrow>
+        </math>
+      </div>
+      <div class="mathbox">
+        <math display="block">
+          <mrow>
+            <msub><mi>A</mi><mi>d</mi></msub>
+            <mo>=</mo>
+            <mfrac>
+              <mrow><mo stretchy="false">|</mo><msub><mi>S</mi><mrow><mo lspace="0" rspace="0">:</mo><mi>d</mi></mrow></msub><mo>∩</mo><msub><mi>T</mi><mrow><mo lspace="0" rspace="0">:</mo><mi>d</mi></mrow></msub><mo stretchy="false">|</mo></mrow>
+              <mi>d</mi>
+            </mfrac>
+          </mrow>
+        </math>
+      </div>
+      <p><i>S</i><sub>:<i>d</i></sub> is the set of the top <i>d</i> items of ranking <i>S</i>. The depth weights <i>w<sub>d</sub></i> = (1 − <i>p</i>)<i>p</i><sup><i>d</i>−1</sup> sum to 1, so RBO runs from 0 (no shared items) to 1 (identical rankings).</p>
+    </div>
+  </div>
+</header>
+
+<div class="pbar" id="pbar">
+  <div class="wrap pbar-inner">
+    <div class="pval">
+      <label for="p-num">p =</label>
+      <input id="p-num" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="0.9" aria-describedby="p-hint">
+      <span class="sr-only" id="p-hint">Between 0 and 0.999. Arrow keys change the value.</span>
+    </div>
+    <div class="slider">
+      <input id="p-range" type="range" min="0" max="3" step="0.005" value="1" aria-label="Persistence p (logarithmic scale)">
+      <div class="ticks" id="p-ticks" aria-hidden="true"></div>
+    </div>
+    <div class="pbar-row2">
+      <div class="presets" id="presets" role="group" aria-label="Preset values of p"></div>
+      <p class="pstats" id="pstats"></p>
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+  <section id="pair" aria-labelledby="pair-h">
+    <div class="sec-head">
+      <h2 id="pair-h">Two rankings, one score</h2>
+      <p>Each row is a depth <i>d</i>. RBO compares the top-<i>d</i> prefixes of both rankings and takes their agreement <i>A<sub>d</sub></i>, the fraction of items they share. It then weights that agreement by <i>w<sub>d</sub></i>. Lines connect shared items; a line's thickness shows how much that item adds to the score at the current <i>p</i>. Drag items to reorder them.</p>
+    </div>
+    <div class="pair-grid">
+      <div class="card">
+        <div class="toolbar">
+          <label class="sr-only" for="example">Load an example</label>
+          <select id="example" class="btn"></select>
+          <button class="btn" id="btn-shuffle" type="button">Shuffle T</button>
+          <button class="btn" id="btn-reverse" type="button">Reverse T</button>
+          <button class="btn" id="btn-edit" type="button" aria-expanded="false" aria-controls="editor">Edit as text</button>
+        </div>
+        <div class="editor" id="editor" hidden>
+          <div><label for="ta-s">Ranking S</label><textarea id="ta-s" spellcheck="false" autocapitalize="off" rows="3"></textarea></div>
+          <div><label for="ta-t">Ranking T</label><textarea id="ta-t" spellcheck="false" autocapitalize="off" rows="3"></textarea></div>
+          <p class="hint">Best item first. Separate items with spaces, commas or new lines (use commas or new lines if items contain spaces). Up to 50 items per list. RBO assumes no ties, so repeated items are dropped.</p>
+          <p class="warn" id="edit-warn" hidden></p>
+        </div>
+        <div class="rt" id="rt" role="group" aria-label="Rankings S and T compared depth by depth"></div>
+        <div class="rt-sum" id="rt-sum"></div>
+        <p class="readout" id="readout" aria-live="polite"></p>
+      </div>
+
+      <div class="card score-card">
+        <div class="kicker">RBO<sub>ext</sub>, the point estimate, at <i>p</i> = <span class="p-echo">0.9</span></div>
+        <div class="hero" id="hero">–</div>
+        <dl class="bounds">
+          <div><dt>Lower bound RBO<sub>min</sub></dt><dd id="b-min">–</dd></div>
+          <div><dt>Upper bound RBO<sub>max</sub></dt><dd id="b-max">–</dd></div>
+          <div><dt>Residual (max − min)</dt><dd id="b-res">–</dd></div>
+        </dl>
+        <div class="meter" id="meter" role="img" aria-label="RBO bounds">
+          <span class="m-min"></span><span class="m-band"></span><span class="m-est"></span>
+        </div>
+        <div class="meter-scale"><span>0</span><span>0.5</span><span>1</span></div>
+        <div class="meter-key">
+          <span><span class="sw" style="background:var(--accent)"></span>guaranteed (≤ RBO<sub>min</sub>)</span>
+          <span><span class="sw" style="background:var(--accent-mid)"></span>undetermined (depends on unseen items)</span>
+          <span><span class="sw tick"></span>estimate RBO<sub>ext</sub></span>
+        </div>
+        <p class="note" id="score-note"></p>
+        <hr class="divider">
+        <figure class="fig">
+          <figcaption>
+            <span class="fig-title">This pair's RBO for every <i>p</i></span>
+            <span class="fig-sub">Line: RBO<sub>ext</sub>. Band: from RBO<sub>min</sub> to RBO<sub>max</sub>. Click or drag on the chart to set <i>p</i>.</span>
+          </figcaption>
+          <div class="chart-box" id="chart-curve"></div>
+          <details class="dt"><summary>Data table</summary><div class="table-wrap" id="tbl-curve"></div></details>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="weights" aria-labelledby="weights-h">
+    <div class="sec-head">
+      <h2 id="weights-h">Where the weight goes</h2>
+      <p>An item at rank <i>r</i> is part of every prefix from depth <i>r</i> on, and adds 1/<i>d</i> to the agreement at each such depth. Its total weight is therefore <i>ω<sub>r</sub></i> = Σ<sub><i>d</i> ≥ <i>r</i></sub> <i>w<sub>d</sub></i>/<i>d</i>. The chart adds these up: the share of the total weight held by the top <i>d</i> ranks. A larger <i>p</i> pushes the curve to the right, so the score depends on deeper ranks, which short lists may not even contain.</p>
+    </div>
+    <div class="weights-grid">
+      <div class="card">
+        <figure class="fig">
+          <figcaption>
+            <span class="fig-title">Share of the total weight held by the top <i>d</i> ranks</span>
+            <span class="fig-sub">Logarithmic depth axis. Grey curves are fixed reference values of <i>p</i>.</span>
+          </figcaption>
+          <div class="chart-box" id="chart-weights"></div>
+          <details class="dt"><summary>Data table</summary><div class="table-wrap" id="tbl-weights"></div></details>
+        </figure>
+      </div>
+      <div class="card">
+        <h3>At <i>p</i> = <span class="p-echo">0.9</span></h3>
+        <div class="tiles" id="tiles"></div>
+        <div class="prose" id="weights-prose"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="scenarios" aria-labelledby="scen-h">
+    <div class="sec-head">
+      <h2 id="scen-h">Which pair is more similar? It depends on <i>p</i></h2>
+      <p>Six variations of the ranking <i>S</i> = A B C D E F G H I J, each compared with <i>S</i>. With a small <i>p</i>, RBO rewards agreement at the very top. As <i>p</i> grows, sharing many items counts more, almost regardless of their order. Drag <i>p</i> and watch the ranking of the pairs change. Select a pair to load it into the table above.</p>
+    </div>
+    <div class="scen-grid">
+      <div class="card">
+        <figure class="fig">
+          <figcaption>
+            <span class="fig-title">RBO<sub>ext</sub> of each pair as a function of <i>p</i></span>
+            <span class="fig-sub">Hover for values; click or drag to set <i>p</i>.</span>
+          </figcaption>
+          <div class="chart-box" id="chart-scen"></div>
+          <details class="dt"><summary>Data table</summary><div class="table-wrap" id="tbl-scen"></div></details>
+        </figure>
+      </div>
+      <div class="card">
+        <h3>Most similar first, at <i>p</i> = <span class="p-echo">0.9</span></h3>
+        <ol class="rank-list" id="rank-list" aria-label="Pairs sorted by RBO at the current p"></ol>
+        <p class="legend-note">Each row shows ranking <i>T</i>; <i>S</i> is always A B C D E F G H I J. The colour key matches the chart.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="math" aria-labelledby="math-h">
+    <div class="sec-head">
+      <h2 id="math-h">The formulas behind the page</h2>
+      <p>Definitions follow Webber, Moffat &amp; Zobel (2010), who introduced RBO. All values on this page are computed exactly in your browser.</p>
+    </div>
+    <div class="math-grid">
+      <div class="card math-card">
+        <h3>Agreement and depth weights</h3>
+        <div class="mathbox"><math display="block">
+          <msub><mi>X</mi><mi>d</mi></msub><mo>=</mo>
+          <mrow><mo stretchy="false">|</mo><msub><mi>S</mi><mrow><mo lspace="0" rspace="0">:</mo><mi>d</mi></mrow></msub><mo>∩</mo><msub><mi>T</mi><mrow><mo lspace="0" rspace="0">:</mo><mi>d</mi></mrow></msub><mo stretchy="false">|</mo></mrow>
+          <mo>,</mo><mspace width="0.8em"/>
+          <msub><mi>A</mi><mi>d</mi></msub><mo>=</mo><mfrac><msub><mi>X</mi><mi>d</mi></msub><mi>d</mi></mfrac>
+          <mo>,</mo><mspace width="0.8em"/>
+          <msub><mi>w</mi><mi>d</mi></msub><mo>=</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo stretchy="false">)</mo><msup><mi>p</mi><mrow><mi>d</mi><mo>−</mo><mn>1</mn></mrow></msup>
+        </math></div>
+        <p>Each depth gets <i>p</i> times the weight of the depth before it. At <i>p</i> = 0.9, depth 10 still gets 39% of the weight of depth 1. At <i>p</i> = 0.5 it gets 0.2%. At <i>p</i> = 0, RBO only checks whether the two top items are the same.</p>
+      </div>
+
+      <div class="card math-card">
+        <h3>Why <i>p</i> is called persistence</h3>
+        <p>Imagine a reader who compares the rankings one depth at a time and, after each depth, carries on with probability <i>p</i>. The chance of stopping at depth <i>d</i> is exactly <i>w<sub>d</sub></i>, so RBO is the expected agreement at the depth where the reader stops. On average that depth is</p>
+        <div class="mathbox"><math display="block">
+          <mi>𝔼</mi><mo stretchy="false">[</mo><mtext>stopping depth</mtext><mo stretchy="false">]</mo><mo>=</mo>
+          <munderover><mo>∑</mo><mrow><mi>d</mi><mo>=</mo><mn>1</mn></mrow><mi>∞</mi></munderover><mi>d</mi><mo>⁢</mo><msub><mi>w</mi><mi>d</mi></msub>
+          <mo>=</mo><mfrac><mn>1</mn><mrow><mn>1</mn><mo>−</mo><mi>p</mi></mrow></mfrac>
+        </math></div>
+        <p><i>p</i> = 0.9 models a reader who inspects about 10 items, and <i>p</i> = 0.98 one who inspects about 50.</p>
+      </div>
+
+      <div class="card math-card">
+        <h3>How much a single rank counts</h3>
+        <div class="mathbox"><math display="block">
+          <msub><mi>ω</mi><mi>r</mi></msub><mo>=</mo>
+          <munderover><mo>∑</mo><mrow><mi>d</mi><mo>=</mo><mi>r</mi></mrow><mi>∞</mi></munderover>
+          <mfrac><msub><mi>w</mi><mi>d</mi></msub><mi>d</mi></mfrac>
+          <mo>=</mo>
+          <mfrac><mrow><mn>1</mn><mo>−</mo><mi>p</mi></mrow><mi>p</mi></mfrac>
+          <mrow><mo>(</mo>
+            <mi>ln</mi><mo>⁡</mo><mfrac><mn>1</mn><mrow><mn>1</mn><mo>−</mo><mi>p</mi></mrow></mfrac>
+            <mo>−</mo>
+            <munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mrow><mi>r</mi><mo>−</mo><mn>1</mn></mrow></munderover>
+            <mfrac><msup><mi>p</mi><mi>i</mi></msup><mi>i</mi></mfrac>
+          <mo>)</mo></mrow>
+        </math></div>
+        <p>Summed over the top <i>d</i> ranks, this gives the share of the weight plotted above:</p>
+        <div class="mathbox"><math display="block">
+          <mi>W</mi><mo stretchy="false">(</mo><mn>1</mn><mo lspace="0" rspace="0">:</mo><mi>d</mi><mo stretchy="false">)</mo><mo>=</mo>
+          <mn>1</mn><mo>−</mo><msup><mi>p</mi><mrow><mi>d</mi><mo>−</mo><mn>1</mn></mrow></msup><mo>+</mo>
+          <mfrac><mrow><mn>1</mn><mo>−</mo><mi>p</mi></mrow><mi>p</mi></mfrac><mo>⋅</mo><mi>d</mi><mo>⋅</mo>
+          <mrow><mo>(</mo><mi>ln</mi><mo>⁡</mo><mfrac><mn>1</mn><mrow><mn>1</mn><mo>−</mo><mi>p</mi></mrow></mfrac><mo>−</mo>
+            <munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mrow><mi>d</mi><mo>−</mo><mn>1</mn></mrow></munderover>
+            <mfrac><msup><mi>p</mi><mi>i</mi></msup><mi>i</mi></mfrac><mo>)</mo></mrow>
+        </math></div>
+        <p>Rule of thumb: the top 1/(1 − <i>p</i>) ranks hold about 85% of the weight (85.6% at <i>p</i> = 0.9, 85.2% at <i>p</i> = 0.98).</p>
+      </div>
+
+      <div class="card math-card">
+        <h3>Finite lists: bounds and an estimate</h3>
+        <p>Real rankings end at some depth <i>k</i>, so RBO can only be bounded. For two lists of length <i>k</i>, with no further overlap beyond depth <i>k</i>:</p>
+        <div class="mathbox"><math display="block">
+          <msub><mi>RBO</mi><mtext>min</mtext></msub><mo>=</mo>
+          <mfrac><mrow><mn>1</mn><mo>−</mo><mi>p</mi></mrow><mi>p</mi></mfrac>
+          <mrow><mo>(</mo>
+            <munderover><mo>∑</mo><mrow><mi>d</mi><mo>=</mo><mn>1</mn></mrow><mi>k</mi></munderover>
+            <mo stretchy="false">(</mo><msub><mi>X</mi><mi>d</mi></msub><mo>−</mo><msub><mi>X</mi><mi>k</mi></msub><mo stretchy="false">)</mo>
+            <mfrac><msup><mi>p</mi><mi>d</mi></msup><mi>d</mi></mfrac>
+            <mo>−</mo><msub><mi>X</mi><mi>k</mi></msub><mi>ln</mi><mo>⁡</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo stretchy="false">)</mo>
+          <mo>)</mo></mrow>
+        </math></div>
+        <p>RBO<sub>max</sub> = RBO<sub>min</sub> + RBO<sub>res</sub> assumes that every unseen item matches as early as possible. The point estimate assumes that the agreement at depth <i>k</i> continues forever:</p>
+        <div class="mathbox"><math display="block">
+          <msub><mi>RBO</mi><mtext>ext</mtext></msub><mo>=</mo>
+          <mfrac><msub><mi>X</mi><mi>k</mi></msub><mi>k</mi></mfrac><msup><mi>p</mi><mi>k</mi></msup><mo>+</mo>
+          <mfrac><mrow><mn>1</mn><mo>−</mo><mi>p</mi></mrow><mi>p</mi></mfrac>
+          <munderover><mo>∑</mo><mrow><mi>d</mi><mo>=</mo><mn>1</mn></mrow><mi>k</mi></munderover>
+          <mfrac><msub><mi>X</mi><mi>d</mi></msub><mi>d</mi></mfrac><msup><mi>p</mi><mi>d</mi></msup>
+        </math></div>
+        <p>The depths beyond <i>k</i> carry <i>p</i><sup><i>k</i></sup> of the weight, so the gap between the bounds grows quickly with <i>p</i>. At <i>k</i> = 10 that is 35% of the weight for <i>p</i> = 0.9, and 90% for <i>p</i> = 0.99. For lists of different lengths the page uses the paper's extension: past the end of the shorter list, its unseen items are assumed to match at the rate seen so far.</p>
+      </div>
+    </div>
+    <div class="card math-card" style="margin-top:16px">
+      <h3>Choosing <i>p</i> in practice</h3>
+      <ul>
+        <li>Pick <i>p</i> so that 1/(1 − <i>p</i>) matches the depth that matters. Use <i>p</i> = 0.9 for a top-10 result page, or <i>p</i> = 0.98 if agreement down to about rank 50 should count.</li>
+        <li>Make the lists long enough for that <i>p</i>. Close to <i>p</i> = 1, short lists leave a large residual, so report the bounds along with RBO<sub>ext</sub>.</li>
+        <li>Always report <i>p</i>. RBO values computed with different <i>p</i> cannot be compared.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <p>Reference: William Webber, Alistair Moffat and Justin Zobel. 2010. A similarity measure for indefinite rankings. <i>ACM Transactions on Information Systems</i> 28(4), Article 20. <a href="https://doi.org/10.1145/1852102.1852106">doi:10.1145/1852102.1852106</a></p>
+    <p>This page is a single self-contained HTML file and computes everything in your browser. The address bar stores the current <i>p</i> and rankings, so you can share a configuration by copying the link.</p>
+  </div>
+</footer>
+<script>
+'use strict';
+/* ==== RBO core: Webber, Moffat & Zobel (2010), ACM TOIS 28(4):20 ==== */
+const RBO = (() => {
+  /** T(p, n) = sum_{d=n+1}^inf p^(d-1) / d */
+  function tail(p, n) {
+    if (p <= 0) return n === 0 ? 1 : 0;
+    if (p < 0.9) {
+      let pw = Math.pow(p, n), sum = 0;
+      for (let d = n + 1; pw > 1e-18; d++) { sum += pw / d; pw *= p; }
+      return sum;
+    }
+    let pw = 1, partial = 0;
+    for (let d = 1; d <= n; d++) { pw *= p; partial += pw / d; }
+    return Math.max(0, (-Math.log1p(-p) - partial) / p);
+  }
+
+  /** Overlap profile. X[d] = |S:d ∩ T:d| for d <= s; for s < d <= l the
+   *  shorter list is fully seen, so X[d] = |short ∩ long:d| (as in the paper). */
+  function profile(S, T) {
+    const nS = S.length, nT = T.length;
+    const s = Math.min(nS, nT), l = Math.max(nS, nT);
+    const X = new Array(l + 1).fill(0);
+    const inS = new Set(), inT = new Set();
+    let x = 0;
+    for (let d = 1; d <= l; d++) {
+      const a = d <= nS ? S[d - 1] : undefined;
+      const b = d <= nT ? T[d - 1] : undefined;
+      if (a !== undefined) inS.add(a);
+      if (b !== undefined) inT.add(b);
+      if (a !== undefined && inT.has(a)) x++;
+      if (b !== undefined && b !== a && inS.has(b)) x++;
+      X[d] = x;
+    }
+    const posT = new Map(T.map((t, j) => [t, j + 1]));
+    const matches = [];
+    S.forEach((a, i) => {
+      const j = posT.get(a);
+      if (j) matches.push({ item: a, i: i + 1, j, m: Math.max(i + 1, j) });
+    });
+    return { nS, nT, s, l, X, matches };
+  }
+
+  /** Agreement used by RBO_ext. Beyond the shorter list's end (d > s) its unseen
+   *  items are assumed to match at the rate X_s / s. */
+  function agreement(P, d) {
+    const { s, X } = P;
+    return d <= s ? X[d] / d : (X[d] + X[s] * (d - s) / s) / d;
+  }
+
+  /** RBO_min, RBO_ext, RBO_max (= min + residual) at persistence p. */
+  function evaluate(P, p) {
+    const { s, l, X } = P;
+    if (s === 0) return null;
+    let w = 1 - p, head = 0, minHead = 0, maxv = 0;
+    for (let d = 1; d <= l; d++) {
+      head += w * agreement(P, d);
+      minHead += w * X[d] / d;
+      maxv += w * (d <= s ? X[d] : X[d] + d - s) / d;
+      w *= p;
+    }
+    const tailW = Math.pow(p, l);           // weight of all depths > l
+    const aL = agreement(P, l);
+    const f = l + s - X[l];                 // depth by which max agreement reaches 1
+    for (let d = l + 1; d <= f; d++) {
+      maxv += w * (X[l] + l - s + 2 * (d - l)) / d;
+      w *= p;
+    }
+    maxv += Math.pow(p, f);
+    const min = minHead + (1 - p) * X[l] * tail(p, l);
+    const ext = head + aL * tailW;
+    return { ext, min, max: maxv, res: maxv - min, head, tailW, aL };
+  }
+
+  /** Rank weights: omega_r = sum_{d>=r} w_d / d = (1-p) T(p, r-1), r = 1..R. */
+  function rankWeights(p, R) {
+    const om = new Float64Array(R + 1);
+    let o = (1 - p) * tail(p, 0), pw = 1;
+    for (let r = 1; r <= R; r++) {
+      om[r] = Math.max(0, o);
+      o -= (1 - p) * pw / r;
+      pw *= p;
+    }
+    return om;
+  }
+
+  /** W(1:d): share of the total weight held by the top d ranks, d = 0..R. */
+  function cumulative(p, R) {
+    const om = rankWeights(p, R), W = new Float64Array(R + 1);
+    for (let r = 1; r <= R; r++) W[r] = Math.min(1, W[r - 1] + om[r]);
+    return W;
+  }
+
+  /** Smallest d with W(1:d) >= q. */
+  function depthForShare(p, q) {
+    let o = (1 - p) * tail(p, 0), pw = 1, W = 0;
+    for (let r = 1; r < 1e7; r++) {
+      W += Math.max(0, o);
+      if (W >= q - 1e-12) return r;
+      o -= (1 - p) * pw / r;
+      pw *= p;
+    }
+    return Infinity;
+  }
+
+  return { tail, profile, agreement, evaluate, rankWeights, cumulative, depthForShare };
+})();
+/* ==== end RBO core ==== */
+
+/* ==== helpers ==== */
+const SVGNS = 'http://www.w3.org/2000/svg';
+const $ = (sel) => document.querySelector(sel);
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') e.className = v;
+    else if (k === 'text') e.textContent = v;
+    else if (k === 'style') e.style.cssText = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of kids) if (c != null) e.append(c);
+  return e;
+}
+function sv(tag, attrs, parent) {
+  const e = document.createElementNS(SVGNS, tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) if (v != null) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const b = (t) => h('b', { text: String(t) });
+const sub = (t) => h('sub', { text: String(t) });
+const clamp = (v, a, z) => Math.min(z, Math.max(a, v));
+const fmt = (v, n = 3) => (v == null || !isFinite(v)) ? '–' : v.toFixed(n);
+const pct = (v, n = 1) => (v * 100).toFixed(n) + '%';
+const fmtP = (p) => String(+p.toFixed(4));
+const fmtDepth = (p) => { const v = 1 / (1 - p); return v < 100 ? String(+v.toFixed(1)) : String(Math.round(v)); };
+const P_MAX = 0.999, U_MAX = 3, RH = 32, MAX_ITEMS = 50;
+const pToU = (p) => -Math.log10(1 - Math.min(p, P_MAX));
+const uToP = (u) => 1 - Math.pow(10, -u);
+/** Round p so that 1 - p keeps two significant digits (0.937, 0.9988, ...). */
+function snapP(p) {
+  p = clamp(p, 0, P_MAX);
+  const q = 1 - p;
+  if (q >= 1) return 0;
+  const step = Math.pow(10, Math.floor(Math.log10(q)) - 1);
+  return clamp(+(1 - Math.round(q / step) * step).toFixed(6), 0, P_MAX);
+}
+const U_GRID = Array.from({ length: 241 }, (_, i) => i * U_MAX / 240);
+const P_TICKS = [
+  { p: 0, label: '0' }, { p: 0.5, label: '0.5' }, { p: 0.8, label: '0.8', minor: true },
+  { p: 0.9, label: '0.9' }, { p: 0.95, label: '0.95', minor: true }, { p: 0.98, label: '0.98', minor: true },
+  { p: 0.99, label: '0.99' }, { p: 0.995, label: '0.995', minor: true }, { p: 0.999, label: '0.999' },
+];
+const PRESETS = [0.5, 0.8, 0.9, 0.95, 0.98, 0.99];
+
+/* ==== examples ==== */
+const sp = (s) => s.split(' ');
+const BASE = sp('A B C D E F G H I J');
+const SCENARIOS = [
+  { id: 'swap-top', name: 'Top two swapped', T: sp('B A C D E F G H I J') },
+  { id: 'top3', name: 'Same top 3, rest new', T: sp('A B C K L M N O P Q') },
+  { id: 'reversed', name: 'Reversed order', T: sp('J I H G F E D C B A') },
+  { id: 'new1', name: 'New item at rank 1', T: sp('K A B C D E F G H I') },
+  { id: 'new3', name: 'New top 3, rest shifted', T: sp('K L M A B C D E F G') },
+  { id: 'swap-bottom', name: 'Bottom two swapped', T: sp('A B C D E F G H J I') },
+];
+SCENARIOS.forEach((s, i) => { s.S = BASE; s.color = `var(--s${i + 1})`; });
+const EXAMPLES = [
+  { id: 'engines', name: 'Two search engines', S: BASE, T: sp('B A D K C F L E M N') },
+  ...SCENARIOS,
+  { id: 'identical', name: 'Identical rankings', S: BASE, T: BASE },
+  { id: 'disjoint', name: 'No shared items', S: BASE, T: sp('K L M N O P Q R U V') },
+  { id: 'uneven', name: 'Different lengths', S: BASE, T: sp('B A C K D E') },
+];
+
+/* ==== state ==== */
+const state = { p: 0.9, S: [...BASE], T: [...EXAMPLES[0].T], P: null, r: null, om: null, curve: null };
+
+function parseList(text) {
+  const raw = /[,;\n]/.test(text) ? text.split(/[,;\n]+/) : text.split(/\s+/);
+  const items = [], seen = new Set(), dups = [];
+  for (let t of raw) {
+    t = t.trim();
+    if (!t) continue;
+    if (seen.has(t)) { dups.push(t); continue; }
+    seen.add(t); items.push(t);
+  }
+  return { items: items.slice(0, MAX_ITEMS), dups, cut: items.length > MAX_ITEMS };
+}
+
+/* ==== p control ==== */
+const pNum = $('#p-num'), pRange = $('#p-range');
+function buildPControl() {
+  const ticks = $('#p-ticks');
+  for (const t of P_TICKS) ticks.append(h('span', { class: t.minor ? 'minor' : null, style: `--f:${pToU(t.p) / U_MAX}`, text: t.label }));
+  const pre = $('#presets');
+  for (const v of PRESETS) pre.append(h('button', { type: 'button', class: 'chip-btn', 'data-p': v, 'aria-pressed': 'false', text: `p = ${v}`, onclick: () => setP(v) }));
+  pRange.addEventListener('input', () => setP(snapP(uToP(+pRange.value)), 'range'));
+  pNum.addEventListener('input', () => {
+    const v = parseFloat(pNum.value.replace(',', '.'));
+    if (isFinite(v)) setP(+clamp(v, 0, P_MAX).toFixed(4), 'num');
+  });
+  pNum.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+    e.preventDefault();
+    const du = (e.key === 'ArrowUp' ? 1 : -1) * (e.shiftKey ? 0.1 : 0.01), u = pToU(state.p);
+    let np = state.p; // step until the snapped value actually changes
+    for (let k = e.shiftKey ? 1 : 2; k <= 60 && np === state.p; k++) np = snapP(uToP(clamp(u + k * du, 0, U_MAX)));
+    setP(np);
+  });
+  pNum.addEventListener('change', () => { pNum.value = fmtP(state.p); });
+}
+function setP(p, source) {
+  p = clamp(p, 0, P_MAX);
+  if (p === state.p && source !== 'init') return;
+  state.p = p;
+  const u = pToU(p);
+  if (source !== 'range') pRange.value = String(u);
+  pRange.style.setProperty('--fill', (u / U_MAX * 100).toFixed(2) + '%');
+  if (source !== 'num') pNum.value = fmtP(p);
+  pRange.setAttribute('aria-valuetext', `p = ${fmtP(p)}, expected depth ${fmtDepth(p)}`);
+  for (const btn of document.querySelectorAll('#presets .chip-btn')) btn.setAttribute('aria-pressed', String(Math.abs(+btn.dataset.p - p) < 1e-9));
+  for (const el of document.querySelectorAll('.p-echo')) el.textContent = fmtP(p);
+  scheduleUpdate();
+  scheduleHash();
+}
+function updatePStats() {
+  const p = state.p, el = $('#pstats');
+  el.textContent = '';
+  el.append('Expected depth 1/(1−p) = ', b(fmtDepth(p)), ' · half of the weight in the top ', b(RBO.depthForShare(p, 0.5)),
+    ' ranks · 90% in the top ', b(RBO.depthForShare(p, 0.9)));
+}
+
+/* ==== rank table with draggable items ==== */
+const table = (() => {
+  const root = $('#rt');
+  let body, rowsLayer, colS, colT, links, rows = [], chipsS = new Map(), chipsT = new Map(), n = 0;
+  let hover = null, drag = null;
+
+  function grip() {
+    const g = sv('svg', { width: 8, height: 14, viewBox: '0 0 8 14', fill: 'currentColor', 'aria-hidden': 'true' });
+    for (const [x, y] of [[2, 2], [6, 2], [2, 7], [6, 7], [2, 12], [6, 12]]) sv('circle', { cx: x, cy: y, r: 1.3 }, g);
+    return g;
+  }
+  function build() {
+    const head = h('div', { class: 'rt-head' },
+      h('span', { class: 'c-d', text: 'd', title: 'Depth' }),
+      h('span', { class: 'c-s', text: 'S' }), h('span'), h('span', { class: 'c-t', text: 'T' }),
+      h('span', { class: 'c-x', title: 'Overlap: items shared by the top-d prefixes' }, 'X', sub('d')),
+      h('span', { class: 'c-a', title: 'Agreement A_d = X_d / d' }, 'A', sub('d')),
+      h('span', { class: 'c-w', title: 'Light bar: depth weight w_d relative to w_1. Dark bar and number: contribution w_d · A_d' }, 'w', sub('d'), ' · A', sub('d')));
+    body = h('div', { class: 'rt-body' });
+    rowsLayer = h('div', { class: 'rt-rows' });
+    colS = h('div', { class: 'rt-col rt-col-s', role: 'list', 'aria-label': 'Ranking S' });
+    links = sv('svg', { class: 'rt-links', 'aria-hidden': 'true' });
+    colT = h('div', { class: 'rt-col rt-col-t', role: 'list', 'aria-label': 'Ranking T' });
+    body.append(rowsLayer, colS, links, colT);
+    root.append(head, body);
+    body.addEventListener('pointermove', onHoverMove);
+    body.addEventListener('pointerleave', () => { if (!drag) setHover(null); });
+    body.addEventListener('click', (e) => { if (!e.target.closest('.chip')) onHoverMove(e); });
+  }
+  function rebuildRows() {
+    n = state.P.l;
+    root.style.setProperty('--n', n);
+    rowsLayer.textContent = '';
+    rows = [];
+    for (let d = 1; d <= n; d++) {
+      const r = { xEl: h('span', { class: 'c-x' }), ai: h('i'), an: h('span', { class: 'num' }),
+        wt: h('span', { class: 'track' }), wf: h('span', { class: 'fill' }), wn: h('span', { class: 'num' }) };
+      r.row = h('div', { class: 'rt-row', style: `top:${(d - 1) * RH}px` },
+        h('span', { class: 'c-d', text: String(d) }), h('span'), h('span'), h('span'), r.xEl,
+        h('span', { class: 'c-a' }, h('span', { class: 'abar' }, r.ai), r.an),
+        h('span', { class: 'c-w' }, h('span', { class: 'wbar' }, r.wt, r.wf), r.wn));
+      rowsLayer.append(r.row);
+      rows.push(r);
+    }
+  }
+  function makeChip(list, item) {
+    const el = h('div', { class: 'chip', role: 'listitem', tabindex: '0', 'aria-roledescription': 'draggable item' },
+      h('span', { class: 'grip' }, grip()), h('span', { class: 'lbl', text: item }));
+    el.dataset.list = list;
+    el.dataset.item = item;
+    el.addEventListener('pointerdown', onChipDown);
+    el.addEventListener('keydown', onChipKey);
+    el.addEventListener('focus', () => { if (!drag) setHover({ type: 'item', list, item }); });
+    el.addEventListener('blur', () => { if (!drag && hover && hover.type === 'item') setHover(null); });
+    return el;
+  }
+  function rebuild() {
+    hover = null;
+    if (!state.P || state.P.l !== n || !rows.length) rebuildRows();
+    colS.textContent = ''; colT.textContent = '';
+    chipsS = new Map(); chipsT = new Map();
+    for (const it of state.S) { const el = makeChip('S', it); chipsS.set(it, el); colS.append(el); }
+    for (const it of state.T) { const el = makeChip('T', it); chipsT.set(it, el); colT.append(el); }
+    reposition();
+  }
+  function reposition() {
+    const inS = new Set(state.S), inT = new Set(state.T);
+    const place = (arr, map, list, other) => arr.forEach((it, i) => {
+      const el = map.get(it);
+      if (!el) return;
+      if (!drag || drag.el !== el) el.style.top = (i * RH) + 'px';
+      el.classList.toggle('matched', other.has(it));
+      el.setAttribute('aria-label', `${it}, rank ${i + 1} of ranking ${list}`);
+    });
+    place(state.S, chipsS, 'S', inT);
+    place(state.T, chipsT, 'T', inS);
+  }
+  function chipY(list, item, rank) {
+    if (drag && drag.list === list && drag.item === item) return drag.y + RH / 2;
+    return (rank - 1) * RH + RH / 2;
+  }
+  function drawLinks() {
+    links.textContent = '';
+    const W = links.getBoundingClientRect().width || 48;
+    const om = state.om, om1 = om[1] || 1;
+    for (const m of state.P.matches) {
+      const y1 = chipY('S', m.item, m.i), y2 = chipY('T', m.item, m.j);
+      const ratio = clamp(om[m.m] / om1, 0, 1);
+      const path = sv('path', { class: 'link', d: `M0 ${y1}C${W / 2} ${y1} ${W / 2} ${y2} ${W} ${y2}`,
+        'stroke-width': (1.2 + 2.8 * ratio).toFixed(2), opacity: (0.25 + 0.75 * ratio).toFixed(3) }, links);
+      path.dataset.item = m.item;
+      path.dataset.m = m.m;
+    }
+    applyHover();
+  }
+  function updateRows() {
+    const P = state.P, p = state.p, w1 = 1 - p, dec = p > 0.98 ? 4 : 3;
+    let w = 1 - p;
+    for (let d = 1; d <= n; d++) {
+      const r = rows[d - 1], a = P.s ? RBO.agreement(P, d) : 0, rel = w1 > 0 ? w / w1 : 0;
+      r.xEl.textContent = String(P.X[d]);
+      r.ai.style.width = (a * 100).toFixed(1) + '%';
+      r.an.textContent = a.toFixed(2);
+      r.an.classList.toggle('est', d > P.s);
+      r.wt.style.width = (rel * 100).toFixed(2) + '%';
+      r.wf.style.width = (rel * a * 100).toFixed(2) + '%';
+      r.wn.textContent = (w * a).toFixed(dec);
+      w *= p;
+    }
+  }
+  function updateSum() {
+    const el = $('#rt-sum'), r = state.r, P = state.P;
+    el.textContent = '';
+    if (!r) return;
+    const l = P.l;
+    el.append(
+      h('div', null, `Depths 1–${l}: sum of w`, sub('d'), ' · A', sub('d'), ' = ', b(fmt(r.head))),
+      h('div', null, `Depths beyond ${l}: their total weight p`, h('sup', { text: String(l) }), ' = ', b(fmt(r.tailW)),
+        ' × assumed agreement ', b(r.aL.toFixed(2)), ' = ', b(fmt(r.aL * r.tailW))),
+      h('div', null, 'RBO', sub('ext'), ' = ', b(fmt(r.ext)),
+        P.s < P.l ? ` (rows below depth ${P.s} include the extrapolated part of the shorter list, shown in grey)` : ''));
+  }
+  function onHoverMove(e) {
+    if (drag || !n) return;
+    const chip = e.target.closest && e.target.closest('.chip');
+    if (chip) { setHover({ type: 'item', list: chip.dataset.list, item: chip.dataset.item }); return; }
+    const d = Math.floor((e.clientY - body.getBoundingClientRect().top) / RH) + 1;
+    setHover(d >= 1 && d <= n ? { type: 'depth', d } : null);
+  }
+  function setHover(hv) {
+    const same = hv && hover && hv.type === hover.type && hv.d === hover.d && hv.item === hover.item;
+    hover = hv;
+    if (!same) { applyHover(); updateReadout(); }
+  }
+  function applyHover() {
+    for (const r of rows) r.row.classList.remove('hl', 'kick');
+    for (const el of chipsS.values()) el.classList.remove('dim', 'hot');
+    for (const el of chipsT.values()) el.classList.remove('dim', 'hot');
+    const paths = links.querySelectorAll('.link');
+    for (const pth of paths) pth.classList.remove('dim', 'hot');
+    if (!hover || !state.P) return;
+    if (hover.type === 'depth') {
+      const d = hover.d;
+      if (rows[d - 1]) rows[d - 1].row.classList.add('hl');
+      state.S.forEach((it, i) => { if (i >= d) chipsS.get(it).classList.add('dim'); });
+      state.T.forEach((it, i) => { if (i >= d) chipsT.get(it).classList.add('dim'); });
+      for (const pth of paths) if (+pth.dataset.m > d) pth.classList.add('dim');
+    } else {
+      const it = hover.item, m = state.P.matches.find((x) => x.item === it);
+      const cs = chipsS.get(it), ct = chipsT.get(it);
+      if (hover.list === 'S' || m) cs && cs.classList.add('hot');
+      if (hover.list === 'T' || m) ct && ct.classList.add('hot');
+      for (const pth of paths) pth.classList.add(pth.dataset.item === it ? 'hot' : 'dim');
+      if (m && rows[m.m - 1]) rows[m.m - 1].row.classList.add('hl', 'kick');
+    }
+  }
+  function updateReadout() {
+    const el = $('#readout'), P = state.P, p = state.p;
+    el.textContent = '';
+    if (!P || P.s === 0) { el.append('Both rankings need at least one item.'); return; }
+    if (!hover) {
+      el.append('Hover over a row (or tap it) to see which prefixes are compared at that depth. Hover over an item to see what it adds to the score. Drag items to reorder them, or focus one and press ↑ / ↓.');
+      return;
+    }
+    if (hover.type === 'depth') {
+      const d = hover.d, tSet = new Set(state.T.slice(0, d));
+      const shared = state.S.slice(0, d).filter((x) => tSet.has(x));
+      const w = (1 - p) * Math.pow(p, d - 1), a = RBO.agreement(P, d);
+      const list = shared.length > 12 ? shared.slice(0, 12).join(', ') + ', …' : shared.join(', ');
+      el.append(b(`Depth ${d}:`), ` the top-${d} prefixes share `, b(shared.length ? list : 'no items'),
+        `, so X`, sub(d), ` = ${P.X[d]} and A`, sub(d), ` = ${a.toFixed(3)}`, d > P.s ? ' (extrapolated)' : '',
+        `. Weight w`, sub(d), ` = ${fmt(w, 4)}, contribution `, b(fmt(w * a, 4)), '.');
+      return;
+    }
+    const it = hover.item, m = P.matches.find((x) => x.item === it);
+    if (m) {
+      const om = state.om[m.m];
+      el.append(b(it), `: rank ${m.i} in S and rank ${m.j} in T. Both top-${m.m} prefixes contain it, so it raises the agreement at every depth d ≥ ${m.m} by 1/d. At p = ${fmtP(p)} that adds ω`,
+        sub(m.m), ' = ', b(fmt(om)), ' to the score (its guaranteed part, RBO', sub('min'), ').');
+    } else {
+      const own = hover.list === 'S' ? state.S : state.T;
+      el.append(b(it), `: rank ${own.indexOf(it) + 1} in ${hover.list}, not in ${hover.list === 'S' ? 'T' : 'S'}. It lowers the agreement at every depth from ${own.indexOf(it) + 1} on.`);
+    }
+  }
+
+  /* drag & keyboard reordering */
+  function onChipDown(e) {
+    if (e.button !== 0 || drag) return;
+    const el = e.currentTarget;
+    if (e.pointerType !== 'mouse' && !e.target.closest('.grip')) return; // touch: drag via the grip, so the page can still scroll
+    e.preventDefault();
+    el.focus({ preventScroll: true });
+    const list = el.dataset.list, item = el.dataset.item;
+    const arr = list === 'S' ? state.S : state.T, idx = arr.indexOf(item);
+    drag = { el, list, item, arr, idx, pid: e.pointerId, startY: e.clientY, startTop: idx * RH, y: idx * RH };
+    try { el.setPointerCapture(e.pointerId); } catch (_) { /* synthetic events */ }
+    el.classList.add('dragging');
+    el.addEventListener('pointermove', onDragMove);
+    el.addEventListener('pointerup', onDragEnd);
+    el.addEventListener('pointercancel', onDragEnd);
+    hover = { type: 'item', list, item };
+    applyHover(); updateReadout();
+  }
+  function onDragMove(e) {
+    if (!drag || e.pointerId !== drag.pid) return;
+    drag.y = clamp(drag.startTop + e.clientY - drag.startY, 0, (drag.arr.length - 1) * RH);
+    drag.el.style.top = drag.y + 'px';
+    const target = clamp(Math.round(drag.y / RH), 0, drag.arr.length - 1);
+    if (target !== drag.idx) {
+      drag.arr.splice(drag.idx, 1);
+      drag.arr.splice(target, 0, drag.item);
+      drag.idx = target;
+      listsChanged({ keepChips: true });
+    } else drawLinks();
+  }
+  function onDragEnd() {
+    if (!drag) return;
+    const el = drag.el;
+    el.removeEventListener('pointermove', onDragMove);
+    el.removeEventListener('pointerup', onDragEnd);
+    el.removeEventListener('pointercancel', onDragEnd);
+    try { el.releasePointerCapture(drag.pid); } catch (_) { /* ignore */ }
+    el.classList.remove('dragging');
+    drag = null;
+    reposition();
+    drawLinks();
+    updateReadout();
+  }
+  function onChipKey(e) {
+    const el = e.currentTarget, list = el.dataset.list, item = el.dataset.item;
+    const arr = list === 'S' ? state.S : state.T, i = arr.indexOf(item);
+    const j = clamp({ ArrowUp: i - 1, ArrowDown: i + 1, Home: 0, End: arr.length - 1 }[e.key] ?? i, 0, arr.length - 1);
+    if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) return;
+    e.preventDefault();
+    if (j === i) return;
+    arr.splice(i, 1);
+    arr.splice(j, 0, item);
+    hover = { type: 'item', list, item };
+    listsChanged({ keepChips: true });
+  }
+
+  function update() {
+    if (!state.P || !rows.length) return;
+    updateRows();
+    drawLinks();
+    updateSum();
+    updateReadout();
+  }
+  build();
+  return { rebuild, reposition, update };
+})();
+
+/* ==== score panel ==== */
+function updateScore() {
+  const r = state.r, P = state.P;
+  $('#hero').textContent = r ? fmt(r.ext) : '–';
+  $('#b-min').textContent = r ? fmt(r.min) : '–';
+  $('#b-max').textContent = r ? fmt(r.max) : '–';
+  $('#b-res').textContent = r ? fmt(r.res) : '–';
+  const meter = $('#meter'), [mMin, mBand, mEst] = meter.children;
+  mMin.style.width = r ? pct(r.min, 2) : '0';
+  mBand.style.left = r ? pct(r.min, 2) : '0';
+  mBand.style.width = r ? pct(r.max - r.min, 2) : '0';
+  mEst.style.left = r ? pct(r.ext, 2) : '0';
+  mEst.style.display = r ? '' : 'none';
+  meter.setAttribute('aria-label', r ? `RBO between ${fmt(r.min)} and ${fmt(r.max)}, estimate ${fmt(r.ext)}` : 'RBO undefined');
+  const note = $('#score-note');
+  note.textContent = '';
+  if (!r) { note.append('Both rankings need at least one item.'); return; }
+  note.append(`Depths 1–${P.l} carry ${pct(1 - r.tailW)} of the weight. The remaining ${pct(r.tailW)} lies beyond the end of the lists, where only bounds are possible. RBO`,
+    sub('ext'), ` assumes that the agreement at depth ${P.l} (${r.aL.toFixed(2)}) continues there.`);
+}
+
+/* ==== chart scaffolding ==== */
+const linePath = (pts) => pts.map((q, i) => (i ? 'L' : 'M') + q[0].toFixed(1) + ',' + q[1].toFixed(1)).join('');
+function tipRow(color, value, label) {
+  return h('div', { class: 'tip-r' }, h('span', { class: 'lk', style: `background:${color}` }), b(value), h('span', { text: label }));
+}
+const pTicks = (iw) => P_TICKS.filter((t) => !t.minor || iw > 440).map((t) => ({ x: pToU(t.p) / U_MAX * iw, label: t.label }));
+
+class Chart {
+  constructor(boxId, { height, margin, label, scrubP }) {
+    this.box = document.getElementById(boxId);
+    this.svg = sv('svg', { class: 'chart', role: 'img', 'aria-label': label }, this.box);
+    this.tip = h('div', { class: 'tip', 'aria-hidden': 'true' });
+    this.box.append(this.tip);
+    this.box.style.height = height + 'px';
+    this.H = height; this.m = margin; this.W = 0; this.scrubP = !!scrubP; this.scrub = false;
+    this.svg.addEventListener('pointermove', (e) => this.pointer(e));
+    this.svg.addEventListener('pointerleave', () => { if (!this.scrub) this.hideHover(); });
+    this.svg.addEventListener('pointerdown', (e) => this.down(e));
+    new ResizeObserver(() => {
+      const w = Math.round(this.box.clientWidth);
+      if (w > 0 && w !== this.W) { this.W = w; this.render(); }
+    }).observe(this.box);
+  }
+  get iw() { return Math.max(10, this.W - this.m.l - this.m.r); }
+  get ih() { return this.H - this.m.t - this.m.b; }
+  xLocal(e) { return e.clientX - this.svg.getBoundingClientRect().left - this.m.l; }
+  frame() {
+    this.svg.textContent = '';
+    this.svg.setAttribute('viewBox', `0 0 ${this.W} ${this.H}`);
+    this.svg.setAttribute('width', this.W);
+    this.svg.setAttribute('height', this.H);
+    return sv('g', { transform: `translate(${this.m.l},${this.m.t})` }, this.svg);
+  }
+  yAxis(g, ys, ticks, f) {
+    for (const t of ticks) {
+      const y = ys(t);
+      if (t !== ticks[0]) sv('line', { class: 'gridline', x1: 0, x2: this.iw, y1: y, y2: y }, g);
+      sv('text', { x: -8, y: y + 3.5, 'text-anchor': 'end' }, g).textContent = f(t);
+    }
+    sv('line', { class: 'baseline', x1: 0, x2: this.iw, y1: this.ih, y2: this.ih }, g);
+  }
+  xAxis(g, ticks) {
+    for (const t of ticks) {
+      sv('line', { class: 'baseline', x1: t.x, x2: t.x, y1: this.ih, y2: this.ih + 4 }, g);
+      sv('text', { x: t.x, y: this.ih + 17, 'text-anchor': 'middle' }, g).textContent = t.label;
+    }
+  }
+  /** p marker: vertical hairline with a "p = …" label at the top. */
+  pMarker(g) {
+    const mk = sv('g', null, g);
+    this.mkLine = sv('line', { class: 'pline', y1: -4, y2: this.ih }, mk);
+    this.mkLabel = sv('text', { class: 't-2 halo', y: -9 }, mk);
+    return mk;
+  }
+  placePMarker(x) {
+    this.mkLine.setAttribute('x1', x); this.mkLine.setAttribute('x2', x);
+    this.mkLabel.textContent = `p = ${fmtP(state.p)}`;
+    this.mkLabel.setAttribute('x', x);
+    this.mkLabel.setAttribute('text-anchor', x < 30 ? 'start' : x > this.iw - 30 ? 'end' : 'middle');
+  }
+  showTip(x, build) {
+    const tip = this.tip;
+    tip.textContent = '';
+    build(tip);
+    tip.classList.add('on');
+    const tw = tip.offsetWidth;
+    let left = x + 14;
+    if (left + tw > this.W) left = x - 14 - tw;
+    tip.style.transform = `translate(${Math.round(Math.max(0, left))}px, ${this.m.t}px)`;
+  }
+  hideHover() { this.tip.classList.remove('on'); if (this.hov) this.hov.setAttribute('visibility', 'hidden'); }
+  down(e) {
+    if (!this.scrubP || e.button !== 0) return;
+    this.scrub = true;
+    try { this.svg.setPointerCapture(e.pointerId); } catch (_) { /* synthetic events */ }
+    const up = () => {
+      this.scrub = false;
+      this.svg.removeEventListener('pointerup', up);
+      this.svg.removeEventListener('pointercancel', up);
+    };
+    this.svg.addEventListener('pointerup', up);
+    this.svg.addEventListener('pointercancel', up);
+    this.pointer(e);
+  }
+  pointer(e) {
+    if (!this.W) return;
+    const x = clamp(this.xLocal(e), 0, this.iw);
+    this.hover(x);
+  }
+  /** for charts with p on the x-axis */
+  pAt(x) { return snapP(uToP(x / this.iw * U_MAX)); }
+}
+
+/* ---- RBO of the current pair across p ---- */
+class CurveChart extends Chart {
+  constructor() {
+    super('chart-curve', { height: 230, margin: { t: 22, r: 14, b: 26, l: 34 }, label: 'RBO of the current pair as a function of p', scrubP: true });
+  }
+  render() {
+    if (!this.W) return;
+    const g = this.frame(), iw = this.iw, ih = this.ih;
+    const xs = (u) => u / U_MAX * iw, ys = (v) => ih - v * ih;
+    this.xs = xs; this.ys = ys;
+    this.yAxis(g, ys, [0, 0.25, 0.5, 0.75, 1], String);
+    this.xAxis(g, pTicks(iw));
+    const c = state.curve || [];
+    if (c.length) {
+      const up = c.map((d) => [xs(d.u), ys(d.max)]), lo = c.map((d) => [xs(d.u), ys(d.min)]);
+      sv('path', { class: 'band', d: linePath(up) + linePath(lo.slice().reverse()).replace('M', 'L') + 'Z' }, g);
+      sv('path', { class: 'band-edge', d: linePath(up) }, g);
+      sv('path', { class: 'band-edge', d: linePath(lo) }, g);
+      sv('path', { class: 'line', stroke: 'var(--accent)', d: linePath(c.map((d) => [xs(d.u), ys(d.ext)])) }, g);
+    }
+    this.mk = this.pMarker(g);
+    this.mkDot = sv('circle', { class: 'dot', r: 5, fill: 'var(--accent)' }, this.mk);
+    this.mkVal = sv('text', { class: 't-strong halo' }, this.mk);
+    this.hov = sv('g', { visibility: 'hidden' }, g);
+    this.hLine = sv('line', { class: 'hline', y1: 0, y2: ih }, this.hov);
+    this.hDots = [3.5, 4.5, 3.5].map((r) => sv('circle', { class: 'dot', r, fill: 'var(--accent)' }, this.hov));
+    sv('rect', { class: 'hit', x: 0, y: 0, width: iw, height: ih }, g);
+    this.updateP();
+  }
+  updateP() {
+    if (!this.mk) return;
+    const r = state.r;
+    this.mk.setAttribute('visibility', r ? 'visible' : 'hidden');
+    if (!r) return;
+    const x = this.xs(pToU(state.p)), y = this.ys(r.ext);
+    this.placePMarker(x);
+    this.mkDot.setAttribute('cx', x); this.mkDot.setAttribute('cy', y);
+    const right = x < this.iw - 52;
+    this.mkVal.textContent = fmt(r.ext);
+    this.mkVal.setAttribute('x', right ? x + 9 : x - 9);
+    this.mkVal.setAttribute('text-anchor', right ? 'start' : 'end');
+    this.mkVal.setAttribute('y', y < 16 ? y + 18 : y - 9);
+  }
+  hover(x) {
+    const p = this.pAt(x);
+    if (this.scrub) setP(p);
+    if (!this.hov || !state.P || !state.P.s) return;
+    const r = RBO.evaluate(state.P, p), hx = this.xs(pToU(p));
+    this.hov.setAttribute('visibility', 'visible');
+    this.hLine.setAttribute('x1', hx); this.hLine.setAttribute('x2', hx);
+    [r.min, r.ext, r.max].forEach((v, i) => { this.hDots[i].setAttribute('cx', hx); this.hDots[i].setAttribute('cy', this.ys(v)); });
+    this.showTip(this.m.l + hx, (tip) => tip.append(
+      h('div', { class: 'tip-h', text: `p = ${fmtP(p)} · expected depth ${fmtDepth(p)}` }),
+      tipRow('var(--accent)', fmt(r.ext), 'RBO_ext estimate'),
+      tipRow('var(--accent-mid)', `${fmt(r.min)} – ${fmt(r.max)}`, 'bounds')));
+  }
+}
+
+/* ---- cumulative rank weight W(1:d) ---- */
+const REF_P = [0.5, 0.9, 0.99, 0.999], W_MAX = 1000;
+class WeightChart extends Chart {
+  constructor() {
+    super('chart-weights', { height: 290, margin: { t: 14, r: 18, b: 28, l: 42 }, label: 'Share of the total weight held by the top d ranks, for the current p and reference values' });
+    this.refs = REF_P.map((p) => ({ p, W: RBO.cumulative(p, W_MAX) }));
+  }
+  path(W) {
+    const pts = [];
+    let last = -1;
+    for (let d = 1; d <= W_MAX; d++) {
+      const x = this.xs(d);
+      if (x - last >= 0.75 || d === W_MAX) { pts.push([x, this.ys(W[d])]); last = x; }
+    }
+    return linePath(pts);
+  }
+  labelSpot(W) { // where the curve reaches 95%, or its right end
+    let d = 1;
+    while (d < W_MAX && W[d] < 0.95) d++;
+    return d < W_MAX ? { x: this.xs(d) + 6, y: this.ys(0.95) + 13, anchor: 'start' }
+      : { x: this.iw, y: this.ys(W[W_MAX]) + 15, anchor: 'end' };
+  }
+  render() {
+    if (!this.W) return;
+    const g = this.frame(), iw = this.iw, ih = this.ih;
+    this.xs = (d) => Math.log10(d) / 3 * iw;
+    this.ys = (v) => ih - v * ih;
+    this.yAxis(g, this.ys, [0, 0.25, 0.5, 0.75, 1], (t) => (t * 100) + '%');
+    const tv = iw > 420 ? [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000] : [1, 10, 100, 1000];
+    this.xAxis(g, tv.map((d) => ({ x: this.xs(d), label: String(d) })));
+    this.refEls = this.refs.map((rf) => {
+      const path = sv('path', { class: 'ref', d: this.path(rf.W) }, g);
+      const s = this.labelSpot(rf.W);
+      const lbl = sv('text', { class: 't-2 halo', x: s.x, y: s.y, 'text-anchor': s.anchor }, g);
+      lbl.textContent = `p = ${rf.p}`;
+      return { ...rf, path, lbl, spot: s };
+    });
+    this.lm = sv('g', null, g);
+    this.lmLine = sv('line', { class: 'pline', y1: 0, y2: ih }, this.lm);
+    this.lmLbl = sv('text', { class: 't-2 halo', y: ih - 7 }, this.lm);
+    this.cur = sv('path', { class: 'line', stroke: 'var(--accent)' }, g);
+    this.curLbl = sv('text', { class: 't-strong halo' }, g);
+    this.lmDot = sv('circle', { class: 'dot', r: 5, fill: 'var(--accent)' }, g);
+    this.hov = sv('g', { visibility: 'hidden' }, g);
+    this.hLine = sv('line', { class: 'hline', y1: 0, y2: ih }, this.hov);
+    this.hDot = sv('circle', { class: 'dot', r: 4.5, fill: 'var(--accent)' }, this.hov);
+    sv('rect', { class: 'hit', x: 0, y: 0, width: iw, height: ih }, g);
+    this.updateP();
+  }
+  updateP() {
+    if (!this.cur) return;
+    const p = state.p;
+    this.Wc = RBO.cumulative(p, W_MAX);
+    this.cur.setAttribute('d', this.path(this.Wc));
+    const s = this.labelSpot(this.Wc);
+    this.curLbl.textContent = `p = ${fmtP(p)}`;
+    this.curLbl.setAttribute('x', s.x); this.curLbl.setAttribute('y', s.y); this.curLbl.setAttribute('text-anchor', s.anchor);
+    for (const rf of this.refEls) {
+      const near = Math.abs(rf.spot.x - s.x) < 52 && Math.abs(rf.spot.y - s.y) < 14;
+      rf.lbl.style.display = near ? 'none' : '';
+      rf.path.style.display = Math.abs(rf.p - p) < 1e-9 ? 'none' : '';
+    }
+    const l = state.P ? state.P.l : 0;
+    this.lm.setAttribute('visibility', l ? 'visible' : 'hidden');
+    this.lmDot.setAttribute('visibility', l ? 'visible' : 'hidden');
+    if (!l) return;
+    const x = this.xs(l), y = this.ys(this.Wc[l]);
+    this.lmLine.setAttribute('x1', x); this.lmLine.setAttribute('x2', x);
+    const right = x < this.iw - 130;
+    this.lmLbl.setAttribute('x', right ? x + 6 : x - 6);
+    this.lmLbl.setAttribute('text-anchor', right ? 'start' : 'end');
+    this.lmLbl.textContent = `your lists: top ${l} = ${pct(this.Wc[l])}`;
+    this.lmDot.setAttribute('cx', x); this.lmDot.setAttribute('cy', y);
+  }
+  hover(x) {
+    if (!this.Wc) return;
+    const d = clamp(Math.round(Math.pow(10, x / this.iw * 3)), 1, W_MAX), hx = this.xs(d);
+    this.hov.setAttribute('visibility', 'visible');
+    this.hLine.setAttribute('x1', hx); this.hLine.setAttribute('x2', hx);
+    this.hDot.setAttribute('cx', hx); this.hDot.setAttribute('cy', this.ys(this.Wc[d]));
+    this.showTip(this.m.l + hx, (tip) => {
+      tip.append(h('div', { class: 'tip-h', text: `Top ${d} rank${d > 1 ? 's' : ''}` }), tipRow('var(--accent)', pct(this.Wc[d]), `p = ${fmtP(state.p)}`));
+      for (const rf of this.refEls) if (Math.abs(rf.p - state.p) > 1e-9) tip.append(tipRow('var(--ref)', pct(rf.W[d]), `p = ${rf.p}`));
+    });
+  }
+}
+
+/* ---- six example pairs across p ---- */
+class ScenChart extends Chart {
+  constructor() {
+    super('chart-scen', { height: 300, margin: { t: 22, r: 14, b: 26, l: 34 }, label: 'RBO of six example pairs as a function of p', scrubP: true });
+    this.data = SCENARIOS.map((s) => {
+      const P = RBO.profile(s.S, s.T);
+      return { s, P, ext: U_GRID.map((u) => RBO.evaluate(P, uToP(u)).ext) };
+    });
+    this.focusId = null;
+  }
+  render() {
+    if (!this.W) return;
+    const g = this.frame(), iw = this.iw, ih = this.ih;
+    this.xs = (u) => u / U_MAX * iw;
+    this.ys = (v) => ih - v * ih;
+    this.yAxis(g, this.ys, [0, 0.25, 0.5, 0.75, 1], String);
+    this.xAxis(g, pTicks(iw));
+    this.gl = sv('g', null, g);
+    for (const d of this.data) d.el = sv('path', { class: 'line', stroke: d.s.color, d: linePath(U_GRID.map((u, i) => [this.xs(u), this.ys(d.ext[i])])) }, this.gl);
+    this.mk = this.pMarker(g);
+    for (const d of this.data) d.dot = sv('circle', { class: 'dot', r: 4.5, fill: d.s.color }, this.mk);
+    this.hov = sv('g', { visibility: 'hidden' }, g);
+    this.hLine = sv('line', { class: 'hline', y1: 0, y2: ih }, this.hov);
+    for (const d of this.data) d.hdot = sv('circle', { class: 'dot', r: 4, fill: d.s.color }, this.hov);
+    sv('rect', { class: 'hit', x: 0, y: 0, width: iw, height: ih }, g);
+    this.updateP();
+    this.applyFocus();
+  }
+  values(p) { return this.data.map((d) => RBO.evaluate(d.P, p).ext); }
+  updateP() {
+    if (!this.mk) return;
+    const x = this.xs(pToU(state.p)), v = this.values(state.p);
+    this.placePMarker(x);
+    this.data.forEach((d, i) => { d.dot.setAttribute('cx', x); d.dot.setAttribute('cy', this.ys(v[i])); });
+  }
+  hover(x) {
+    const p = this.pAt(x);
+    if (this.scrub) setP(p);
+    if (!this.hov) return;
+    const v = this.values(p), hx = this.xs(pToU(p));
+    this.hov.setAttribute('visibility', 'visible');
+    this.hLine.setAttribute('x1', hx); this.hLine.setAttribute('x2', hx);
+    this.data.forEach((d, i) => { d.hdot.setAttribute('cx', hx); d.hdot.setAttribute('cy', this.ys(v[i])); });
+    const order = this.data.map((d, i) => i).sort((a, c) => v[c] - v[a] || a - c);
+    this.showTip(this.m.l + hx, (tip) => {
+      tip.append(h('div', { class: 'tip-h', text: `p = ${fmtP(p)}` }));
+      for (const i of order) tip.append(tipRow(this.data[i].s.color, fmt(v[i]), this.data[i].s.name));
+    });
+  }
+  setFocus(id) { this.focusId = id; this.applyFocus(); }
+  applyFocus() {
+    for (const d of this.data) {
+      if (!d.el) continue;
+      const on = this.focusId === d.s.id, off = this.focusId && !on;
+      d.el.classList.toggle('faded', !!off);
+      d.el.classList.toggle('focus', on);
+      d.dot.style.opacity = off ? 0.2 : '';
+      if (on) this.gl.appendChild(d.el);
+    }
+  }
+}
+
+/* ==== weight tiles ==== */
+function updateTiles() {
+  const p = state.p, l = state.P ? state.P.l : 0, W = RBO.cumulative(p, Math.max(l, 1));
+  const tiles = $('#tiles');
+  tiles.textContent = '';
+  const tile = (label, value, unit) => tiles.append(h('div', { class: 'tile' },
+    h('div', { class: 'tile-l', text: label }), h('div', { class: 'tile-v' }, value, unit ? h('small', { text: ' ' + unit }) : null)));
+  tile('Rank 1 alone', pct(W[1]));
+  if (l) tile(`Top ${l} ranks (your lists)`, pct(W[l]));
+  tile('Half of the weight', `top ${RBO.depthForShare(p, 0.5)}`, 'ranks');
+  tile('90% of the weight', `top ${RBO.depthForShare(p, 0.9)}`, 'ranks');
+  const prose = $('#weights-prose');
+  prose.textContent = '';
+  prose.append(h('p', null, 'A reader with persistence ', b(`p = ${fmtP(p)}`), ` stops after ${fmtDepth(p)} items on average.`));
+  if (l) prose.append(h('p', null, `Even if both rankings agreed on all ${l} items, `, b(pct(1 - W[l])),
+    ` of the score would depend on ranks beyond depth ${l}, which the lists do not show. This is the residual RBO`, sub('res'), ' of two identical lists.'));
+}
+
+/* ==== data tables (accessible twins of the charts) ==== */
+function dataTable(head, rows, curIdx) {
+  return h('table', { class: 'data' },
+    h('thead', null, h('tr', null, ...head.map((t) => h('th', { scope: 'col', text: t })))),
+    h('tbody', null, ...rows.map((r, i) => h('tr', { class: i === curIdx ? 'cur' : null }, ...r.map((c) => h('td', { text: c }))))));
+}
+const TABLE_P = [0.5, 0.8, 0.9, 0.95, 0.98, 0.99, 0.999];
+function renderTables() {
+  const p = state.p, P = state.P;
+  const withCur = TABLE_P.includes(p) ? TABLE_P : [...TABLE_P, p].sort((a, c) => a - c);
+  const cur = withCur.indexOf(p);
+  const box1 = $('#tbl-curve');
+  if (box1.closest('details').open) {
+    box1.textContent = '';
+    box1.append(P && P.s ? dataTable(['p', 'RBO_min', 'RBO_ext', 'RBO_max'],
+      withCur.map((q) => { const r = RBO.evaluate(P, q); return [fmtP(q), fmt(r.min), fmt(r.ext), fmt(r.max)]; }), cur) : h('p', { text: 'No data.' }));
+  }
+  const box2 = $('#tbl-weights');
+  if (box2.closest('details').open) {
+    const ds = [1, 2, 3, 5, 10, 20, 50, 100, 200, 500, 1000], Wc = RBO.cumulative(p, 1000), refs = REF_P.map((q) => RBO.cumulative(q, 1000));
+    box2.textContent = '';
+    box2.append(dataTable(['Top d ranks', `p = ${fmtP(p)}`, ...REF_P.map((q) => `p = ${q}`)],
+      ds.map((d) => [String(d), pct(Wc[d]), ...refs.map((W) => pct(W[d]))])));
+  }
+  const box3 = $('#tbl-scen');
+  if (box3.closest('details').open) {
+    box3.textContent = '';
+    box3.append(dataTable(['Pair (T)', ...withCur.map((q) => `p = ${fmtP(q)}`)],
+      scenChart.data.map((d) => [d.s.name, ...withCur.map((q) => fmt(RBO.evaluate(d.P, q).ext))])));
+  }
+}
+for (const d of document.querySelectorAll('details.dt')) d.addEventListener('toggle', renderTables);
+
+/* ==== examples, editor, URL state ==== */
+const exSel = $('#example');
+for (const ex of EXAMPLES) exSel.append(h('option', { value: ex.id, text: ex.name }));
+exSel.append(h('option', { value: 'custom', text: 'Custom rankings', disabled: true }));
+exSel.addEventListener('change', () => { const ex = EXAMPLES.find((e) => e.id === exSel.value); if (ex) loadExample(ex); });
+const sameList = (a, c) => a.length === c.length && a.every((x, i) => x === c[i]);
+const isLoaded = (ex) => sameList(ex.S, state.S) && sameList(ex.T, state.T);
+function loadExample(ex) { state.S = [...ex.S]; state.T = [...ex.T]; listsChanged(); }
+
+function listsChanged(opts = {}) {
+  state.P = RBO.profile(state.S, state.T);
+  state.curve = state.P.s ? U_GRID.map((u) => { const r = RBO.evaluate(state.P, uToP(u)); return { u, min: r.min, ext: r.ext, max: r.max }; }) : [];
+  if (opts.keepChips) table.reposition(); else table.rebuild();
+  const ex = EXAMPLES.find(isLoaded);
+  exSel.value = ex ? ex.id : 'custom';
+  if (!opts.fromEditor) syncEditor();
+  curveChart.render();
+  scheduleUpdate();
+  scheduleHash();
+}
+
+const editor = $('#editor'), editBtn = $('#btn-edit'), taS = $('#ta-s'), taT = $('#ta-t'), warn = $('#edit-warn');
+const joinList = (a) => a.some((x) => /\s/.test(x)) ? a.join(', ') : a.join(' ');
+function syncEditor() {
+  if (editor.hidden) return;
+  taS.value = joinList(state.S);
+  taT.value = joinList(state.T);
+  warn.hidden = true;
+}
+editBtn.addEventListener('click', () => {
+  const open = editor.hidden;
+  editor.hidden = !open;
+  editBtn.setAttribute('aria-expanded', String(open));
+  if (open) { syncEditor(); taT.focus(); }
+});
+let editTimer = 0;
+for (const ta of [taS, taT]) ta.addEventListener('input', () => { clearTimeout(editTimer); editTimer = setTimeout(applyEditor, 180); });
+function applyEditor() {
+  const a = parseList(taS.value), c = parseList(taT.value), msgs = [];
+  const dups = [...new Set([...a.dups, ...c.dups])];
+  if (dups.length) msgs.push(`Repeated items ignored: ${dups.join(', ')}.`);
+  if (a.cut || c.cut) msgs.push(`Only the first ${MAX_ITEMS} items of each list are used.`);
+  if (!a.items.length || !c.items.length) msgs.push('Both rankings need at least one item.');
+  warn.hidden = !msgs.length;
+  warn.textContent = msgs.join(' ');
+  state.S = a.items;
+  state.T = c.items;
+  listsChanged({ fromEditor: true });
+}
+$('#btn-shuffle').addEventListener('click', () => {
+  const t = state.T;
+  for (let i = t.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [t[i], t[j]] = [t[j], t[i]]; }
+  listsChanged();
+});
+$('#btn-reverse').addEventListener('click', () => { state.T.reverse(); listsChanged(); });
+
+let hashTimer = 0, lastHash = '';
+function scheduleHash() { clearTimeout(hashTimer); hashTimer = setTimeout(writeHash, 300); }
+function writeHash() {
+  const enc = (a) => a.map(encodeURIComponent).join(',');
+  lastHash = `#p=${fmtP(state.p)}&s=${enc(state.S)}&t=${enc(state.T)}`;
+  if (location.hash !== lastHash) try { history.replaceState(null, '', lastHash); } catch (_) { /* file:// in some browsers */ }
+}
+function readHash() {
+  const out = {};
+  try {
+    const q = new URLSearchParams(location.hash.slice(1));
+    const p = parseFloat(q.get('p'));
+    if (isFinite(p)) out.p = clamp(p, 0, P_MAX);
+    for (const k of ['s', 't']) { const v = q.get(k); if (v) out[k] = parseList(v.split(',').join('\n')).items; }
+  } catch (_) { /* ignore malformed links */ }
+  return out;
+}
+function applyHash() {
+  const hs = readHash();
+  if (hs.s && hs.s.length && hs.t && hs.t.length) { state.S = hs.s; state.T = hs.t; }
+  listsChanged();
+  setP(hs.p != null ? hs.p : 0.9, 'init');
+}
+window.addEventListener('hashchange', () => { if (location.hash !== lastHash) applyHash(); });
+
+/* ==== theme ==== */
+$('#theme-btn').addEventListener('click', () => {
+  const root = document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  root.dataset.theme = dark ? 'light' : 'dark';
+  try { localStorage.setItem('rbo-theme', root.dataset.theme); } catch (_) { /* storage unavailable */ }
+});
+
+/* ==== update loop & init ==== */
+let raf = 0;
+function scheduleUpdate() { if (!raf) raf = requestAnimationFrame(() => { raf = 0; update(); }); }
+function update() {
+  const P = state.P, p = state.p;
+  state.r = P && P.s ? RBO.evaluate(P, p) : null;
+  state.om = RBO.rankWeights(p, Math.max(P ? P.l : 1, 1));
+  updatePStats();
+  table.update();
+  updateScore();
+  curveChart.updateP();
+  weightChart.updateP();
+  updateTiles();
+  scenChart.updateP();
+  rankList.update();
+  renderTables();
+}
+
+buildPControl();
+const curveChart = new CurveChart(), weightChart = new WeightChart(), scenChart = new ScenChart();
+const rankList = (() => {
+  const ol = $('#rank-list'), ROW = 56;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const items = scenChart.data.map((d, idx) => {
+    const pos = h('span', { class: 'rank-pos' }), val = h('span', { class: 'rank-val' });
+    const btn = h('button', { type: 'button', class: 'rank-btn' }, pos,
+      h('span', { class: 'lk', style: `background:${d.s.color};width:18px` }),
+      h('span', { class: 'rank-txt' }, h('span', { class: 'rank-name', text: d.s.name }), h('span', { class: 'rank-seq', text: 'T = ' + d.s.T.join(' ') })),
+      val);
+    btn.addEventListener('click', () => { loadExample(d.s); $('#pair').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }); });
+    for (const [ev, id] of [['pointerenter', d.s.id], ['focus', d.s.id], ['pointerleave', null], ['blur', null]]) btn.addEventListener(ev, () => scenChart.setFocus(id));
+    const li = h('li', null, btn);
+    ol.append(li);
+    return { d, idx, li, pos, val, btn };
+  });
+  ol.style.height = (items.length * ROW) + 'px';
+  function update() {
+    const v = scenChart.values(state.p);
+    const order = items.slice().sort((a, c) => v[c.idx] - v[a.idx] || a.idx - c.idx);
+    order.forEach((it, rank) => {
+      it.li.style.transform = `translateY(${rank * ROW}px)`;
+      it.pos.textContent = String(rank + 1);
+      it.val.textContent = fmt(v[it.idx]);
+      it.btn.setAttribute('aria-label', `${rank + 1}. ${it.d.s.name}, RBO ${fmt(v[it.idx])}. Load this pair into the table.`);
+      it.btn.classList.toggle('loaded', isLoaded(it.d.s));
+    });
+  }
+  return { update };
+})();
+applyHash();
+</script>
+</body>
+</html>
